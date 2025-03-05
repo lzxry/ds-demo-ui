@@ -72,16 +72,6 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
-            <el-form-item label="状态">
-              <el-select v-model="filterForm.status" placeholder="请选择状态" clearable>
-                <el-option label="待处理" value="pending" />
-                <el-option label="处理中" value="processing" />
-                <el-option label="已完成" value="completed" />
-                <el-option label="失败" value="failed" />
-              </el-select>
-            </el-form-item>
-          </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -107,6 +97,29 @@
           </el-col>
         </el-row>
       </el-form>
+
+      <!-- 最新数据列表 -->
+      <div class="latest-data">
+        <div class="list-header">
+          <span class="title">最新数据（最近20条）</span>
+        </div>
+        <el-table :data="latestData" style="width: 100%; margin-bottom: 20px">
+          <el-table-column type="index" label="序号" width="80" />
+          <el-table-column prop="body" label="回传内容" min-width="400">
+            <template #default="{ row }">
+              <el-tooltip
+                :content="row.body"
+                placement="top"
+                :show-after="500"
+                :hide-after="0"
+              >
+                <div class="body-content">{{ row.body }}</div>
+              </el-tooltip>
+            </template>
+          </el-table-column>
+          <el-table-column prop="submitTime" label="回传时间" width="180" />
+        </el-table>
+      </div>
 
       <!-- 数据列表 -->
       <div v-if="showDataList" class="data-list">
@@ -251,7 +264,6 @@ const filterForm = reactive({
   project: '',
   user: '',
   token: '',
-  status: '',
   dateRange: []
 })
 
@@ -328,7 +340,7 @@ const handleUserChange = () => {
 
 // 查询数据
 const handleSearch = async () => {
-  if (!filterForm.project && !filterForm.user && !filterForm.token && !filterForm.status && !filterForm.dateRange?.length) {
+  if (!filterForm.project && !filterForm.user && !filterForm.token && !filterForm.dateRange?.length) {
     ElMessage.warning('请至少选择一个筛选条件')
     return
   }
@@ -348,7 +360,6 @@ const handleReset = () => {
     project: '',
     user: '',
     token: '',
-    status: '',
     dateRange: []
   })
   showDataList.value = false
@@ -496,6 +507,90 @@ const formatJson = (content) => {
   }
   return JSON.stringify(content, null, 2)
 }
+
+// 最新数据列表
+const latestData = ref([
+  {
+    body: '{"taskId": "PDD_2024012001", "result": "success", "data": {"score": 95, "comment": "质量良好"}}',
+    submitTime: '2024-01-20 15:30:22'
+  },
+  {
+    body: '{"taskId": "JD_2024012002", "result": "success", "data": {"score": 88, "comment": "符合要求"}}',
+    submitTime: '2024-01-20 15:28:45'
+  },
+  {
+    body: '{"taskId": "TB_2024012003", "result": "success", "data": {"score": 92, "comment": "完成度好"}}',
+    submitTime: '2024-01-20 15:25:18'
+  },
+  {
+    body: '{"taskId": "PDD_2024012004", "result": "success", "data": {"score": 85, "comment": "基本达标"}}',
+    submitTime: '2024-01-20 15:20:33'
+  },
+  {
+    body: '{"taskId": "JD_2024012005", "result": "success", "data": {"score": 90, "comment": "质量优秀"}}',
+    submitTime: '2024-01-20 15:15:56'
+  },
+  {
+    body: '{"taskId": "TB_2024012006", "result": "success", "data": {"score": 87, "comment": "符合标准"}}',
+    submitTime: '2024-01-20 15:10:42'
+  },
+  {
+    body: '{"taskId": "PDD_2024012007", "result": "success", "data": {"score": 93, "comment": "完成出色"}}',
+    submitTime: '2024-01-20 15:05:27'
+  },
+  {
+    body: '{"taskId": "JD_2024012008", "result": "success", "data": {"score": 89, "comment": "质量良好"}}',
+    submitTime: '2024-01-20 15:00:15'
+  },
+  {
+    body: '{"taskId": "TB_2024012009", "result": "success", "data": {"score": 91, "comment": "符合要求"}}',
+    submitTime: '2024-01-20 14:55:38'
+  },
+  {
+    body: '{"taskId": "PDD_2024012010", "result": "success", "data": {"score": 86, "comment": "基本达标"}}',
+    submitTime: '2024-01-20 14:50:24'
+  },
+  {
+    body: '{"taskId": "JD_2024012011", "result": "success", "data": {"score": 94, "comment": "质量优秀"}}',
+    submitTime: '2024-01-20 14:45:19'
+  },
+  {
+    body: '{"taskId": "TB_2024012012", "result": "success", "data": {"score": 88, "comment": "符合标准"}}',
+    submitTime: '2024-01-20 14:40:33'
+  },
+  {
+    body: '{"taskId": "PDD_2024012013", "result": "success", "data": {"score": 92, "comment": "完成出色"}}',
+    submitTime: '2024-01-20 14:35:47'
+  },
+  {
+    body: '{"taskId": "JD_2024012014", "result": "success", "data": {"score": 87, "comment": "质量良好"}}',
+    submitTime: '2024-01-20 14:30:22'
+  },
+  {
+    body: '{"taskId": "TB_2024012015", "result": "success", "data": {"score": 90, "comment": "符合要求"}}',
+    submitTime: '2024-01-20 14:25:15'
+  },
+  {
+    body: '{"taskId": "PDD_2024012016", "result": "success", "data": {"score": 85, "comment": "基本达标"}}',
+    submitTime: '2024-01-20 14:20:38'
+  },
+  {
+    body: '{"taskId": "JD_2024012017", "result": "success", "data": {"score": 93, "comment": "质量优秀"}}',
+    submitTime: '2024-01-20 14:15:42'
+  },
+  {
+    body: '{"taskId": "TB_2024012018", "result": "success", "data": {"score": 89, "comment": "符合标准"}}',
+    submitTime: '2024-01-20 14:10:27'
+  },
+  {
+    body: '{"taskId": "PDD_2024012019", "result": "success", "data": {"score": 91, "comment": "完成出色"}}',
+    submitTime: '2024-01-20 14:05:33'
+  },
+  {
+    body: '{"taskId": "JD_2024012020", "result": "success", "data": {"score": 86, "comment": "质量良好"}}',
+    submitTime: '2024-01-20 14:00:19'
+  }
+])
 </script>
 
 <style scoped lang="scss">
@@ -513,9 +608,43 @@ const formatJson = (content) => {
 
   .filter-form {
     margin-bottom: 20px;
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .latest-data {
+    margin-bottom: 30px;
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+    
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+
+      .title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #303133;
+      }
+    }
+
+    .body-content {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 500px;
+    }
   }
 
   .data-list {
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+    
     .list-header {
       display: flex;
       justify-content: space-between;

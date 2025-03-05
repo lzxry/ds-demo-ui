@@ -73,17 +73,15 @@
       destroy-on-close
     >
       <div class="template-detail">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="字段名" v-for="(field, key) in currentTemplate" :key="key">
-            <div class="field-info">
-              <span class="field-name">{{ key }}</span>
-              <el-tag size="small" :type="field.required ? 'danger' : 'info'" style="margin-left: 10px">
-                {{ field.required ? '必需' : '可选' }}
-              </el-tag>
-            </div>
-            <div class="field-description">{{ field.description }}</div>
-          </el-descriptions-item>
-        </el-descriptions>
+        <div class="template-header">
+          <el-button type="primary" link @click="handleCopyTemplate">
+            <el-icon><CopyDocument /></el-icon>
+            复制数据
+          </el-button>
+        </div>
+        <div class="template-content">
+          <pre>{{ formatJson(currentTemplate) }}</pre>
+        </div>
       </div>
     </el-dialog>
 
@@ -164,6 +162,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DataValidator } from '@/utils/dataValidator'
+import { CopyDocument } from '@element-plus/icons-vue'
 
 console.log('DataValidation component mounted')
 
@@ -274,6 +273,19 @@ const handleSubmit = () => {
   }
 }
 
+// 复制模板数据
+const handleCopyTemplate = () => {
+  const templateText = JSON.stringify(currentTemplate.value, null, 2)
+  navigator.clipboard.writeText(templateText).then(() => {
+    ElMessage.success('数据已复制到剪贴板')
+  })
+}
+
+// 格式化JSON
+const formatJson = (data) => {
+  return JSON.stringify(data, null, 2)
+}
+
 onMounted(() => {
   console.log('DataValidation component mounted')
 })
@@ -329,20 +341,27 @@ onMounted(() => {
   }
 
   .template-detail {
-    .field-info {
+    .template-header {
+      margin-bottom: 20px;
       display: flex;
-      align-items: center;
-      margin-bottom: 5px;
-
-      .field-name {
-        font-weight: bold;
-        color: #303133;
-      }
+      justify-content: flex-end;
     }
 
-    .field-description {
-      color: #909399;
-      font-size: 13px;
+    .template-content {
+      pre {
+        margin: 0;
+        padding: 15px;
+        background-color: #f5f7fa;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #333;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 600px;
+        overflow-y: auto;
+      }
     }
   }
 
