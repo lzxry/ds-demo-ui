@@ -2,17 +2,24 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/login/index.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/',
     name: 'Layout',
     component: () => import('@/layout/index.vue'),
     redirect: '/dashboard',
+    meta: { requiresAuth: true },
     children: [
       {
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         meta: {
-          title: '首页',
+          title: '仪表盘',
           icon: 'House'
         }
       },
@@ -77,6 +84,30 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 添加路由守卫
+router.beforeEach((to, from, next) => {
+  console.log('Route guard triggered:', { to, from })
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  
+  // 如果未登录且不是登录页
+  if (!isLoggedIn && to.path !== '/login') {
+    console.log('Not logged in, redirecting to login')
+    next('/login')
+    return
+  }
+  
+  // 如果已登录且是登录页
+  if (isLoggedIn && to.path === '/login') {
+    console.log('Already logged in, redirecting to dashboard')
+    next('/dashboard')
+    return
+  }
+  
+  // 其他情况正常放行
+  console.log('Proceeding to:', to.path)
+  next()
 })
 
 export default router 

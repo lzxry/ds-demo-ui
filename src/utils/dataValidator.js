@@ -3,7 +3,7 @@
  */
 export class DataValidator {
   constructor() {
-    this.templates = new Map() // 存储数据模板
+    this.templates = {}
   }
 
   /**
@@ -13,24 +13,25 @@ export class DataValidator {
    * @param {Object} template - 模板数据
    */
   addTemplate(project, type, template) {
-    const key = `${project}_${type}`
-    this.templates.set(key, template)
+    if (!this.templates[project]) {
+      this.templates[project] = {}
+    }
+    if (!this.templates[project][type]) {
+      this.templates[project][type] = []
+    }
+    this.templates[project][type].push(template)
   }
 
   /**
-   * 获取项目的数据格式类型列表
+   * 获取项目支持的数据格式类型
    * @param {string} project - 项目名称
    * @returns {Array} 格式类型列表
    */
   getFormatTypes(project) {
-    const types = []
-    this.templates.forEach((template, key) => {
-      if (key.startsWith(project)) {
-        const type = key.split('_')[1]
-        types.push(type)
-      }
-    })
-    return [...new Set(types)]
+    if (!this.templates[project]) {
+      return []
+    }
+    return Object.keys(this.templates[project])
   }
 
   /**
@@ -41,32 +42,35 @@ export class DataValidator {
    * @returns {Object} 验证结果
    */
   validateFormat(data, project, type) {
-    const template = this.templates.get(`${project}_${type}`)
-    if (!template) {
+    if (!this.templates[project] || !this.templates[project][type]) {
       return {
         isValid: false,
         message: '未找到对应的数据模板',
         differences: {
           missing: [],
-          extra: Object.keys(data)
+          extra: []
         }
       }
     }
 
-    const templateKeys = new Set(Object.keys(template))
-    const dataKeys = new Set(Object.keys(data))
+    // 获取第一个模板作为验证标准
+    const template = this.templates[project][type][0]
+    const requiredFields = Object.entries(template)
+      .filter(([_, value]) => value.required)
+      .map(([key]) => key)
 
-    // 找出缺失的字段
-    const missing = Array.from(templateKeys).filter(key => !dataKeys.has(key))
-    // 找出多余的字段
-    const extra = Array.from(dataKeys).filter(key => !templateKeys.has(key))
+    const dataFields = Object.keys(data)
+    const missingFields = requiredFields.filter(field => !dataFields.includes(field))
+    const extraFields = dataFields.filter(field => !Object.keys(template).includes(field))
+
+    const isValid = missingFields.length === 0 && extraFields.length === 0
 
     return {
-      isValid: missing.length === 0 && extra.length === 0,
-      message: missing.length === 0 && extra.length === 0 ? '数据格式校验通过' : '数据格式存在差异',
+      isValid,
+      message: isValid ? '数据格式验证通过' : '数据格式验证未通过',
       differences: {
-        missing,
-        extra
+        missing: missingFields,
+        extra: extraFields
       }
     }
   }

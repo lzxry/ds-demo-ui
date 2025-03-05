@@ -45,20 +45,25 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive } from 'vue'
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import type { FormInstance } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const formRef = ref<FormInstance>()
+const formRef = ref()
 const loading = ref(false)
 
 const loginForm = reactive({
   username: '',
   password: ''
+})
+
+// 添加自动填充
+onMounted(() => {
+  loginForm.username = 'admin'
+  loginForm.password = 'admin'
 })
 
 const rules = {
@@ -80,8 +85,9 @@ const handleLogin = async () => {
     // 模拟登录请求
     setTimeout(() => {
       if (loginForm.username === 'admin' && loginForm.password === 'admin') {
+        localStorage.setItem('isLoggedIn', 'true')
         ElMessage.success('登录成功')
-        router.push('/')
+        router.push('/dashboard')  // 修改这里，直接跳转到仪表盘
       } else {
         ElMessage.error('用户名或密码错误')
       }

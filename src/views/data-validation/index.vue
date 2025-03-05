@@ -161,9 +161,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DataValidator } from '@/utils/dataValidator'
+
+console.log('DataValidation component mounted')
 
 const project = ref('pdd')
 const dataType = ref('app')
@@ -232,6 +234,7 @@ const currentTemplate = ref({})
 
 // 获取当前项目支持的数据格式类型
 const formatTypes = computed(() => {
+  console.log('Computing format types for project:', project.value)
   return validator.getFormatTypes(project.value)
 })
 
@@ -270,6 +273,10 @@ const handleSubmit = () => {
     ElMessage.error(`数据格式错误：${error.message}`)
   }
 }
+
+onMounted(() => {
+  console.log('DataValidation component mounted')
+})
 </script>
 
 <style scoped lang="scss">
