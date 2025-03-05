@@ -71,8 +71,8 @@
             <el-button type="primary" link @click="handleEditAccess(row)">
               编辑
             </el-button>
-            <el-button type="success" link @click="handleViewTasks(row)">
-              任务管理
+            <el-button type="success" link @click="handleViewData(row)">
+              查看数据
             </el-button>
             <el-button
               :type="row.status === 'active' ? 'warning' : 'success'"
@@ -378,77 +378,70 @@
       </template>
     </el-dialog>
 
-    <!-- 任务管理弹窗 -->
+    <!-- 数据统计弹窗 -->
     <el-dialog
-      v-model="taskDialogVisible"
-      title="任务管理"
-      width="1000px"
+      v-model="dataDialogVisible"
+      title="数据统计"
+      width="80%"
       destroy-on-close
     >
-      <div class="task-management">
-        <!-- 任务统计 -->
+      <div class="accounting-stats">
         <el-row :gutter="20">
-          <el-col :span="6">
-            <el-card shadow="hover">
+          <el-col :span="12">
+            <el-card class="accounting-card">
               <template #header>
-                <div class="stat-header">待处理任务</div>
+                <div class="card-header">
+                  <span>用户核算</span>
+                </div>
               </template>
-              <div class="stat-value">{{ taskStats.pending }}</div>
+              <div class="stats-content">
+                <div class="stats-item">
+                  <span class="label">今日完成数：</span>
+                  <span class="value">{{ dataStats.userAccounting.todayCompleted }}</span>
+                </div>
+                <div class="stats-item">
+                  <span class="label">今日金额：</span>
+                  <span class="value">¥{{ dataStats.userAccounting.todayAmount }}</span>
+                </div>
+                <div class="stats-item">
+                  <span class="label">累计完成数：</span>
+                  <span class="value">{{ dataStats.userAccounting.totalCompleted }}</span>
+                </div>
+                <div class="stats-item">
+                  <span class="label">累计金额：</span>
+                  <span class="value">¥{{ dataStats.userAccounting.totalAmount }}</span>
+                </div>
+              </div>
             </el-card>
           </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover">
+          <el-col :span="12">
+            <el-card class="accounting-card">
               <template #header>
-                <div class="stat-header">处理中任务</div>
+                <div class="card-header">
+                  <span>客户核算</span>
+                </div>
               </template>
-              <div class="stat-value">{{ taskStats.processing }}</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover">
-              <template #header>
-                <div class="stat-header">已完成任务</div>
-              </template>
-              <div class="stat-value">{{ taskStats.completed }}</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover">
-              <template #header>
-                <div class="stat-header">失败任务</div>
-              </template>
-              <div class="stat-value">{{ taskStats.failed }}</div>
+              <div class="stats-content">
+                <div class="stats-item">
+                  <span class="label">今日完成数：</span>
+                  <span class="value">{{ dataStats.clientAccounting.todayCompleted }}</span>
+                </div>
+                <div class="stats-item">
+                  <span class="label">今日金额：</span>
+                  <span class="value">¥{{ dataStats.clientAccounting.todayAmount }}</span>
+                </div>
+                <div class="stats-item">
+                  <span class="label">累计完成数：</span>
+                  <span class="value">{{ dataStats.clientAccounting.totalCompleted }}</span>
+                </div>
+                <div class="stats-item">
+                  <span class="label">累计金额：</span>
+                  <span class="value">¥{{ dataStats.clientAccounting.totalAmount }}</span>
+                </div>
+              </div>
             </el-card>
           </el-col>
         </el-row>
-
-        <!-- 任务列表 -->
-        <el-table :data="taskList" style="width: 100%; margin-top: 20px">
-          <el-table-column prop="id" label="任务ID" width="120" />
-          <el-table-column prop="type" label="任务类型" width="120">
-            <template #default="{ row }">
-              <el-tag :type="getTaskTypeTag(row.type)">
-                {{ getTaskTypeText(row.type) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getTaskStatusTag(row.status)">
-                {{ getTaskStatusText(row.status) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="180" />
-          <el-table-column prop="updateTime" label="更新时间" width="180" />
-          <el-table-column label="操作" width="120" fixed="right">
-            <template #default="{ row }">
-              <el-button type="primary" link @click="handleViewTaskDetail(row)">
-                查看详情
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
       </div>
     </el-dialog>
   </div>
@@ -557,13 +550,21 @@ const rules = {
   ]
 }
 
-// 任务相关
-const taskDialogVisible = ref(false)
-const taskStats = ref({
-  pending: 10,
-  processing: 5,
-  completed: 100,
-  failed: 2
+// 数据统计相关
+const dataDialogVisible = ref(false)
+const dataStats = ref({
+  userAccounting: {
+    todayCompleted: 0,
+    todayAmount: 0,
+    totalCompleted: 0,
+    totalAmount: 0
+  },
+  clientAccounting: {
+    todayCompleted: 0,
+    todayAmount: 0,
+    totalCompleted: 0,
+    totalAmount: 0
+  }
 })
 
 // 获取接入类型标签样式
@@ -805,16 +806,24 @@ const getTaskStatusText = (status) => {
   return texts[status] || status
 }
 
-// 查看任务
-const handleViewTasks = (access) => {
-  currentAccess.value = access
-  taskDialogVisible.value = true
-}
-
-// 查看任务详情
-const handleViewTaskDetail = (task) => {
-  // 实现查看任务详情的逻辑
-  console.log('查看任务详情:', task)
+// 查看数据
+const handleViewData = (row) => {
+  dataDialogVisible.value = true
+  // 模拟获取数据
+  dataStats.value = {
+    userAccounting: {
+      todayCompleted: 150,
+      todayAmount: 1500,
+      totalCompleted: 1500,
+      totalAmount: 15000
+    },
+    clientAccounting: {
+      todayCompleted: 120,
+      todayAmount: 1200,
+      totalCompleted: 1200,
+      totalAmount: 12000
+    }
+  }
 }
 </script>
 
