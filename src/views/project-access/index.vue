@@ -1,3 +1,34 @@
+/**
+ * 项目接入管理页面
+ * 功能说明：
+ * 1. 支持三种接入方式：拉取提交、推送拉取、离线交付
+ * 2. 每种接入方式都有其特定的配置项
+ * 3. 支持任务下发策略配置（优先级和时间段）
+ * 4. 提供数据统计功能
+ * 
+ * API集成说明：
+ * 1. 接入列表数据获取：
+ *    - 替换 originalAccessList 的模拟数据
+ *    - 在组件挂载时调用 API 获取数据
+ *    - 建议使用 Vue Query 或 Pinia 进行状态管理
+ * 
+ * 2. 接入配置相关 API：
+ *    - 创建接入：POST /api/access
+ *    - 更新接入：PUT /api/access/:id
+ *    - 删除接入：DELETE /api/access/:id
+ *    - 切换状态：PATCH /api/access/:id/status
+ * 
+ * 3. 数据统计相关 API：
+ *    - 获取统计数据：GET /api/access/:id/stats
+ *    - 参数：startDate, endDate
+ *    - 返回格式：{ total: number, dailyStats: Array<{date: string, completedTasks: number}> }
+ * 
+ * 4. 文件上传 API：
+ *    - 上传任务模板：POST /api/upload/task-template
+ *    - 上传数据模板：POST /api/upload/data-template
+ *    - 需要处理文件大小限制和类型验证
+ */
+
 <template>
   <div class="project-access">
     <el-card>
@@ -381,67 +412,33 @@
     <!-- 数据统计弹窗 -->
     <el-dialog
       v-model="dataDialogVisible"
-      title="数据统计"
-      width="80%"
+      :title="currentProject + '总数：' + totalCount"
+      width="30%"
       destroy-on-close
+      class="data-stats-dialog"
     >
-      <div class="accounting-stats">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-card class="accounting-card">
-              <template #header>
-                <div class="card-header">
-                  <span>用户核算</span>
-                </div>
-              </template>
-              <div class="stats-content">
-                <div class="stats-item">
-                  <span class="label">今日完成数：</span>
-                  <span class="value">{{ dataStats.userAccounting.todayCompleted }}</span>
-                </div>
-                <div class="stats-item">
-                  <span class="label">今日金额：</span>
-                  <span class="value">¥{{ dataStats.userAccounting.todayAmount }}</span>
-                </div>
-                <div class="stats-item">
-                  <span class="label">累计完成数：</span>
-                  <span class="value">{{ dataStats.userAccounting.totalCompleted }}</span>
-                </div>
-                <div class="stats-item">
-                  <span class="label">累计金额：</span>
-                  <span class="value">¥{{ dataStats.userAccounting.totalAmount }}</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card class="accounting-card">
-              <template #header>
-                <div class="card-header">
-                  <span>客户核算</span>
-                </div>
-              </template>
-              <div class="stats-content">
-                <div class="stats-item">
-                  <span class="label">今日完成数：</span>
-                  <span class="value">{{ dataStats.clientAccounting.todayCompleted }}</span>
-                </div>
-                <div class="stats-item">
-                  <span class="label">今日金额：</span>
-                  <span class="value">¥{{ dataStats.clientAccounting.todayAmount }}</span>
-                </div>
-                <div class="stats-item">
-                  <span class="label">累计完成数：</span>
-                  <span class="value">{{ dataStats.clientAccounting.totalCompleted }}</span>
-                </div>
-                <div class="stats-item">
-                  <span class="label">累计金额：</span>
-                  <span class="value">¥{{ dataStats.clientAccounting.totalAmount }}</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+      <div class="data-stats">
+        <!-- 日期选择 -->
+        <div class="date-range">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            :shortcuts="dateShortcuts"
+            @change="handleDateChange"
+          />
+          <el-button type="primary" @click="handleCopyData">复制数据</el-button>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="table-container">
+          <el-table :data="dailyStats" style="width: 100%">
+            <el-table-column prop="date" label="日期" width="120" />
+            <el-table-column prop="completedTasks" label="已回传" width="120" />
+          </el-table>
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -451,10 +448,10 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-// 接入类型
+// 接入类型选择
 const accessType = ref('')
 
-// 原始接入列表数据
+// 原始接入列表数据（模拟数据）
 const originalAccessList = ref([
   {
     id: 1,
@@ -488,14 +485,15 @@ const originalAccessList = ref([
   }
 ])
 
-// 当前显示的接入列表数据
+// 当前显示的接入列表数据（根据接入类型筛选）
 const accessList = ref([...originalAccessList.value])
 
-// 表单相关
-const dialogVisible = ref(false)
-const formRef = ref(null)
-const currentAccess = ref(null)
+// 表单相关变量
+const dialogVisible = ref(false)  // 控制表单弹窗显示
+const formRef = ref(null)         // 表单引用
+const currentAccess = ref(null)   // 当前编辑的接入项
 
+// 接入配置表单数据
 const accessForm = reactive({
   name: '',
   project: '',
@@ -538,6 +536,7 @@ const accessForm = reactive({
   timeRanges: '',
 })
 
+// 表单验证规则
 const rules = {
   name: [
     { required: true, message: '请输入接入名称', trigger: 'blur' }
@@ -550,24 +549,45 @@ const rules = {
   ]
 }
 
-// 数据统计相关
-const dataDialogVisible = ref(false)
-const dataStats = ref({
-  userAccounting: {
-    todayCompleted: 0,
-    todayAmount: 0,
-    totalCompleted: 0,
-    totalAmount: 0
-  },
-  clientAccounting: {
-    todayCompleted: 0,
-    todayAmount: 0,
-    totalCompleted: 0,
-    totalAmount: 0
-  }
-})
+// 数据统计相关变量
+const dataDialogVisible = ref(false)  // 控制数据统计弹窗显示
+const currentProject = ref('')        // 当前查看的项目名称
+const dateRange = ref([])             // 日期范围选择
+const totalCount = ref(0)             // 总任务数
+const dailyStats = ref([])            // 每日统计数据
 
-// 获取接入类型标签样式
+// 日期快捷选项配置
+const dateShortcuts = [
+  {
+    text: '最近一周',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
+      return [start, end]
+    }
+  },
+  {
+    text: '最近一个月',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30)
+      return [start, end]
+    }
+  },
+  {
+    text: '最近三个月',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90)
+      return [start, end]
+    }
+  }
+]
+
+// 获取接入类型对应的标签样式
 const getAccessTypeTag = (type) => {
   const types = {
     PULL_PUSH: 'success',
@@ -587,7 +607,7 @@ const getAccessTypeText = (type) => {
   return texts[type] || type
 }
 
-// 处理接入类型变更
+// 处理接入类型变更，筛选显示对应的接入列表
 const handleAccessTypeChange = (type) => {
   // 如果选择全部，显示所有数据
   if (!type) {
@@ -598,7 +618,7 @@ const handleAccessTypeChange = (type) => {
   accessList.value = originalAccessList.value.filter(item => item.type === type)
 }
 
-// 创建接入
+// 创建新的接入配置
 const handleCreateAccess = () => {
   currentAccess.value = null
   Object.assign(accessForm, {
@@ -647,14 +667,14 @@ const handleCreateAccess = () => {
   selectedHours.value = []
 }
 
-// 编辑接入
+// 编辑现有接入配置
 const handleEditAccess = (access) => {
   currentAccess.value = access
   Object.assign(accessForm, access)
   dialogVisible.value = true
 }
 
-// 提交表单
+// 提交接入配置表单
 const handleSubmit = async () => {
   if (!formRef.value) return
   
@@ -701,7 +721,7 @@ const handleSubmit = async () => {
   })
 }
 
-// 切换接入状态
+// 切换接入状态（启用/禁用）
 const handleToggleStatus = (access) => {
   const action = access.status === 'active' ? '禁用' : '启用'
   ElMessageBox.confirm(
@@ -729,6 +749,7 @@ const handleDataTemplateSuccess = (response) => {
   ElMessage.success('数据模板上传成功')
 }
 
+// 文件上传前的验证
 const beforeTaskTemplateUpload = (file) => {
   const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   if (!isExcel) {
@@ -747,9 +768,9 @@ const beforeDataTemplateUpload = (file) => {
   return true
 }
 
-// 在 script setup 部分添加新的响应式变量
-const dayType = ref('all')
-const selectedHours = ref([])
+// 时间段配置相关变量
+const dayType = ref('all')           // 时间段类型（全天/自定义）
+const selectedHours = ref([])        // 选中的时间点
 
 // 生成24小时选项
 const hours = Array.from({ length: 24 }, (_, i) => ({
@@ -757,14 +778,14 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
   label: `${i}点`
 }))
 
-// 在 script setup 部分添加优先级标签方法
+// 获取优先级对应的标签样式
 const getPriorityTag = (priority) => {
   if (priority >= 8) return 'danger'
   if (priority >= 5) return 'warning'
   return 'info'
 }
 
-// 获取任务类型标签样式
+// 获取任务类型对应的标签样式
 const getTaskTypeTag = (type) => {
   const types = {
     PULL: 'success',
@@ -784,7 +805,7 @@ const getTaskTypeText = (type) => {
   return texts[type] || type
 }
 
-// 获取任务状态标签样式
+// 获取任务状态对应的标签样式
 const getTaskStatusTag = (status) => {
   const types = {
     pending: 'info',
@@ -806,24 +827,63 @@ const getTaskStatusText = (status) => {
   return texts[status] || status
 }
 
-// 查看数据
+// 查看项目数据统计
 const handleViewData = (row) => {
+  currentProject.value = row.project
   dataDialogVisible.value = true
-  // 模拟获取数据
-  dataStats.value = {
-    userAccounting: {
-      todayCompleted: 150,
-      todayAmount: 1500,
-      totalCompleted: 1500,
-      totalAmount: 15000
-    },
-    clientAccounting: {
-      todayCompleted: 120,
-      todayAmount: 1200,
-      totalCompleted: 1200,
-      totalAmount: 12000
-    }
+  // 默认选择最近一个月
+  const end = new Date()
+  const start = new Date()
+  start.setTime(start.getTime() - 3600 * 1000 * 24 * 30)
+  dateRange.value = [start, end]
+  fetchDailyStats(start, end)
+}
+
+// 处理日期范围变化
+const handleDateChange = (val) => {
+  if (val) {
+    fetchDailyStats(val[0], val[1])
   }
+}
+
+// 获取每日统计数据（模拟数据）
+const fetchDailyStats = (startDate, endDate) => {
+  // 模拟数据
+  const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+  const stats = []
+  let total = 0
+  
+  for (let i = 0; i < days; i++) {
+    const date = new Date(startDate)
+    date.setDate(date.getDate() + i)
+    const dailyCount = Math.floor(Math.random() * 100) + 50
+    total += dailyCount
+    
+    stats.push({
+      date: date.toLocaleDateString(),
+      totalTasks: dailyCount,
+      completedTasks: Math.floor(dailyCount * 0.8),
+      amount: dailyCount * 10
+    })
+  }
+  
+  totalCount.value = total
+  dailyStats.value = stats
+}
+
+// 复制统计数据到剪贴板
+const handleCopyData = () => {
+  const title = `${currentProject.value}总数：${totalCount.value}`
+  const tableData = dailyStats.value.map(item => 
+    `${item.date}\t${item.completedTasks}`
+  ).join('\n')
+  
+  const text = `${title}\n${tableData}`
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success('数据已复制到剪贴板')
+  }).catch(() => {
+    ElMessage.error('复制失败，请手动复制')
+  })
 }
 </script>
 
@@ -922,6 +982,28 @@ const handleViewData = (row) => {
         font-size: 13px;
       }
     }
+  }
+
+  .data-stats {
+    .date-range {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .table-container {
+      height: 400px;
+      overflow-y: auto;
+    }
+  }
+}
+
+:deep(.data-stats-dialog) {
+  .el-dialog__body {
+    padding: 20px;
+    max-height: 500px;
+    overflow: hidden;
   }
 }
 </style> 
