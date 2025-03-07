@@ -1,0 +1,71 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: data-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/data_service?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      connection-test-query: SELECT 1
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 10s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.example.ds.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN
+    swagger-model-name: 实体类列表
+  basic:
+    enable: false
+  production: false
+
+jwt:
+  secret: your-secret-key-must-be-at-least-32-characters-long
+  expiration: 86400  # 24小时
+  header: Authorization
+  token-prefix: Bearer 
+
+logging:
+  level:
+    root: info
+    com.example.ds: debug
+  file:
+    name: logs/data-service.log 

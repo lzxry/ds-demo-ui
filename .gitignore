@@ -1,2 +1,5 @@
 
-/node_modules
+/pdd-peoples/target
+/pdd-peoples/logs
+/pdd-peoples
+/backend/target
