@@ -11,9 +11,64 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'Dashboard',
-      component: () => import('../views/Home.vue'),
-      meta: { requiresAuth: true, title: '仪表盘' }
+      component: () => import('../layout/index.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'Dashboard',
+          component: () => import('../views/Home.vue'),
+          meta: { title: '仪表盘', icon: 'dashboard' }
+        },
+        // 用户管理模块
+        {
+          path: 'users',
+          name: 'Users',
+          component: () => import('../views/users/index.vue'),
+          meta: { title: '用户管理', icon: 'user' }
+        },
+        {
+          path: 'token',
+          name: 'Token',
+          component: () => import('../views/token/index.vue'),
+          meta: { title: 'Token管理', icon: 'key' }
+        },
+        // 项目管理模块
+        {
+          path: 'projects',
+          name: 'Projects',
+          component: () => import('../views/projects/index.vue'),
+          meta: { title: '项目管理', icon: 'folder' }
+        },
+        // 数据统计模块
+        {
+          path: 'statistics',
+          name: 'Statistics',
+          component: () => import('../views/statistics/index.vue'),
+          meta: { title: '数据统计', icon: 'chart' }
+        },
+        // 项目接入模块
+        {
+          path: 'project-access',
+          name: 'ProjectAccess',
+          component: () => import('../views/project-access/index.vue'),
+          meta: { title: '项目接入', icon: 'connection' }
+        },
+        // 近期数据模块
+        {
+          path: 'recent-data',
+          name: 'RecentData',
+          component: () => import('../views/recent-data/index.vue'),
+          meta: { title: '近期数据', icon: 'data' }
+        },
+        // 安全管理
+        {
+          path: 'security',
+          name: 'Security',
+          component: () => import('../views/security/index.vue'),
+          meta: { title: '安全管理', icon: 'lock' }
+        }
+      ]
     },
     // 添加一个通配符路由，确保所有未匹配的路径都重定向到首页
     {
@@ -53,4 +108,4 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-export default router 
+export default router

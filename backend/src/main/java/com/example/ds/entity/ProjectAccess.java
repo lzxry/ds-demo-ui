@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("project_access")
-public class ProjectAccess {
+public class ProjectAccess extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
     
@@ -27,4 +27,7 @@ public class ProjectAccess {
     
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;  // 更新时间
-} 
+    
+    @TableLogic
+    private Integer deleted;    // 是否删除：0-未删除，1-已删除
+}
