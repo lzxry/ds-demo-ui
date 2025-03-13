@@ -50,10 +50,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
+import { useUserStore } from '../store'
 
 const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
+const userStore = useUserStore()
 
 const loginForm = reactive({
   username: '',
@@ -82,17 +84,24 @@ const handleLogin = async () => {
     await formRef.value.validate()
     loading.value = true
     
-    // 模拟登录请求
-    setTimeout(() => {
+    try {
+      // 直接使用模拟登录，确保可以登录
+      console.log('尝试登录:', loginForm)
+      
       if (loginForm.username === 'admin' && loginForm.password === 'admin') {
         localStorage.setItem('isLoggedIn', 'true')
+        localStorage.setItem('token', 'dev-mock-token')
         ElMessage.success('登录成功')
-        router.push('/dashboard')  // 修改这里，直接跳转到仪表盘
+        router.push('/dashboard')
       } else {
         ElMessage.error('用户名或密码错误')
       }
+    } catch (error) {
+      console.error('登录失败:', error)
+      ElMessage.error('登录失败，请稍后再试')
+    } finally {
       loading.value = false
-    }, 1000)
+    }
   } catch (error) {
     console.error('表单验证失败:', error)
   }

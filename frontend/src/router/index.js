@@ -87,28 +87,26 @@ const router = createRouter({
   routes
 })
 
-// 添加路由守卫
+// 路由守卫
 router.beforeEach((to, from, next) => {
   console.log('Route guard triggered:', { to, from })
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
   
-  // 如果未登录且不是登录页
-  if (!isLoggedIn && to.path !== '/login') {
-    console.log('Not logged in, redirecting to login')
-    next('/login')
-    return
+  // 如果要访问的页面需要登录
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!isLoggedIn) {
+      next({ path: '/login' })
+    } else {
+      next()
+    }
+  } else {
+    // 如果已登录且尝试访问登录页
+    if (to.path === '/login' && isLoggedIn) {
+      next({ path: '/dashboard' })
+    } else {
+      next()
+    }
   }
-  
-  // 如果已登录且是登录页
-  if (isLoggedIn && to.path === '/login') {
-    console.log('Already logged in, redirecting to dashboard')
-    next('/dashboard')
-    return
-  }
-  
-  // 其他情况正常放行
-  console.log('Proceeding to:', to.path)
-  next()
 })
 
 export default router 
